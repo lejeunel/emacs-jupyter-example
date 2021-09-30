@@ -1,0 +1,17 @@
+#+TITLE: Example Jupyter Notebook with emacs-jupyter
+
+* Synopsis and Usage
+
+This an example Jupyter notebook made with [[https://www.gnu.org/software/emacs/][Emacs]]
+and the [[https://github.com/nnicandro/emacs-jupyter][emacs-jupyter]] package.
+
+We add some utilities to display [[https://pandas.pydata.org/][pandas]] dataframes as tables,
+and other simple tweaks to make the exported documents
+pretty.
+
+Open [[file:example.org]] in your editor and have fun!
+
+* Requirements
+
+- Install ~jupyter_console~ and ~jupyter_client~ using your
+    favorite Python package manager

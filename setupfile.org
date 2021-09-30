@@ -1,0 +1,6 @@
+#+OPTIONS: ^:nil
+#+OPTIONS: toc:nil
+#+BIND: org-latex-listings t
+#+LATEX_HEADER: \usepackage{listings}
+#+LATEX_HEADER: \input{listings-python.prf}
+#+LATEX_HEADER: \lstset{style={python-idle-code},showstringspaces=false,tabsize=4,frame=single}
