@@ -2,11 +2,34 @@
 #+AUTHOR: Laurent
 #+TITLE: Machine Learning Model for Predicting a Ship's Crew Size
 
+* Setup :noexport:
+#+BEGIN_SRC jupyter-python :results raw :session my :exports both
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+import IPython
+from tabulate import tabulate
+
+class OrgFormatter(IPython.core.formatters.BaseFormatter):
+    def __call__(self, obj):
+        try:
+            return tabulate(obj, headers='keys',
+                            tablefmt='orgtbl', showindex='always')
+        except:
+            return None
+
+ip = get_ipython()
+ip.display_formatter.formatters['text/org'] = OrgFormatter()
+#+END_SRC
+
+#+RESULTS:
 
 * Basic statistics
 
 #+BEGIN_SRC jupyter-python :session my :exports both :results raw drawer
-df=pd.read_csv("./cruise_ship_info.csv")
+df=pd.read_csv("cruise_ship_info.csv")
 df.describe()
 #+END_SRC
 
@@ -42,11 +65,17 @@ plt.title('probability distribution')
 plt.show()
 #+END_SRC
 
+#+RESULTS:
+[[file:./.ob-jupyter/c76084f5519bdb05c863c08655a00218289d6143.png]]
+
 #+BEGIN_SRC jupyter-python :session my :exports both :results raw drawer
 sns.distplot(df['Tonnage'],bins=20)
 plt.title('probability distribution')
 plt.show()
 #+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/cd06f2cc9f6a9bc6432da1e887ffb4451d28baec.png]]
 
 * Variable selection for predicting "crew" size
 ** Calculation of covariance matrix
@@ -101,8 +130,8 @@ In order to build a simplified regression model, we shall focus only on ordinal 
 
 #+BEGIN_SRC jupyter-python :results raw :session my :exports both
 from sklearn.model_selection import train_test_split
-X = df[cols_selected].iloc[:,0:4].values
-y = df[cols_selected]['crew']
+X = df[cols_selected].iloc[:,0:4].to_numpy()
+y = df[cols_selected]['crew'].to_numpy()
 X_train, X_test, y_train, y_test = train_test_split( X,
                                                      y,
                                                      test_size=0.4, random_state=0)
@@ -121,6 +150,8 @@ y_train_pred = slr.predict(X_train)
 y_test_pred = slr.predict(X_test)
 #+END_SRC
 
+#+RESULTS:
+
 #+BEGIN_SRC jupyter-python :session my  :exports both :results raw drawer
 plt.scatter(y_train_pred,  y_train_pred - y_train,
             c='steelblue', marker='o', edgecolor='white',
@@ -138,6 +169,9 @@ plt.legend(loc='lower right')
 plt.show()
 #+END_SRC
 
+#+RESULTS:
+[[file:./.ob-jupyter/8c6a4b2ca98de0bab8d7c23151f5e63ad5816cd1.png]]
+
 * Evaluation of regression model
 #+BEGIN_SRC jupyter-python :results raw :session my  :exports both
 from sklearn.metrics import r2_score
@@ -151,33 +185,46 @@ print('R^2 train: %.3f, test: %.3f' % (
         r2_score(y_test, y_test_pred)))
 #+END_SRC
 
+#+RESULTS:
+: MSE train: 0.955, test: 0.889
+: R^2 train: 0.920, test: 0.928
+
 * Regression coefficients
 #+BEGIN_SRC jupyter-python :results raw :session my :exports both
 slr.fit(X_train, y_train).intercept_
 #+END_SRC
 
+#+RESULTS:
+: -0.7525074496158393
+
 #+BEGIN_SRC jupyter-python :results raw :session my :exports both
 slr.fit(X_train, y_train).coef_
 #+END_SRC
 
+#+RESULTS:
+: array([ 0.01902703, -0.15001099,  0.37876395,  0.77613801])
+
 * Feature Standardization, Cross Validation, and Hyper-parameter Tuning
+
 #+BEGIN_SRC jupyter-python :results raw :session my :exports both
 from sklearn.metrics import r2_score
 from sklearn.model_selection import train_test_split
-X = df[cols_selected].iloc[:,0:4].values
-y = df[cols_selected]['crew']
+X = df[cols_selected].iloc[:,0:4].to_numpy()
+y = df[cols_selected]['crew'].to_numpy()
 from sklearn.preprocessing import StandardScaler
 sc_y = StandardScaler()
 sc_x = StandardScaler()
-y_std = sc_y.fit_transform(y_train[:, np.newaxis]).flatten()
+y_std = sc_y.fit_transform(y_train.reshape(-1, 1))
 #+END_SRC
+
+
 #+BEGIN_SRC jupyter-python :results raw :session my :exports both
 train_score = []
 test_score = []
 
 for i in range(10):
     X_train, X_test, y_train, y_test = train_test_split( X, y, test_size=0.4, random_state=i)
-    y_train_std = sc_y.fit_transform(y_train[:, np.newaxis]).flatten()
+    y_train_std = sc_y.fit_transform(y_train.reshape(-1, 1)).flatten()
     from sklearn.preprocessing import StandardScaler
     from sklearn.decomposition import PCA
     from sklearn.linear_model import LinearRegression
@@ -192,21 +239,37 @@ for i in range(10):
     test_score = np.append(test_score, r2_score(y_test, y_test_pred))
 #+END_SRC
 
+#+RESULTS:
+
 #+BEGIN_SRC jupyter-python :results raw :session my :exports both
 train_score
 #+END_SRC
+
+#+RESULTS:
+: array([0.92028261, 0.91733937, 0.94839385, 0.93899476, 0.90621451,
+:        0.91156903, 0.92726066, 0.94000795, 0.93922948, 0.93629554])
 
 #+BEGIN_SRC jupyter-python :results raw :session my :exports both
 test_score
 #+END_SRC
 
+#+RESULTS:
+: array([0.92827978, 0.93807946, 0.8741834 , 0.89901199, 0.94781315,
+:        0.91880183, 0.91437408, 0.89660876, 0.90427477, 0.90139208])
+
 #+BEGIN_SRC jupyter-python :results raw :session my :exports both
 print('R2 train: %.3f +/- %.3f' % (np.mean(train_score),np.std(train_score)))
 #+END_SRC
 
+#+RESULTS:
+: R2 train: 0.929 +/- 0.013
+
 #+BEGIN_SRC jupyter-python :results raw :session my :exports both
 print('R2 test: %.3f +/- %.3f' % (np.mean(test_score),np.std(test_score)))
 #+END_SRC
+
+#+RESULTS:
+: R2 test: 0.912 +/- 0.021
 
 * Techniques of Dimensionality Reduction
 ** Principal Component Analysis (PCA)
@@ -217,7 +280,7 @@ cum_variance = []
 
 for i in range(1,5):
     X_train, X_test, y_train, y_test = train_test_split( X, y, test_size=0.4, random_state=0)
-    y_train_std = sc_y.fit_transform(y_train[:, np.newaxis]).flatten()
+    y_train_std = sc_y.fit_transform(y_train.reshape(-1, 1)).flatten()
     from sklearn.preprocessing import StandardScaler
     from sklearn.decomposition import PCA
     from sklearn.linear_model import LinearRegression
@@ -233,17 +296,21 @@ for i in range(1,5):
     cum_variance = np.append(cum_variance, np.sum(pipe_lr.fit(X_train, y_train).named_steps['pca'].explained_variance_ratio_))
 #+END_SRC
 
+#+RESULTS:
+
 #+BEGIN_SRC jupyter-python :results raw :session my :exports both
 train_score
 #+END_SRC
+
+#+RESULTS:
+: array([0.90411898, 0.9041488 , 0.90416405, 0.92028261])
 
 #+BEGIN_SRC jupyter-python :results raw :session my :exports both
 test_score
 #+END_SRC
 
-#+BEGIN_SRC jupyter-python :results raw :session my :exports both
-cum_score
-#+END_SRC
+#+RESULTS:
+: array([0.89217843, 0.89174896, 0.89159266, 0.92827978])
 
 #+BEGIN_SRC jupyter-python :session my :exports both :results raw drawer
 plt.scatter(cum_variance,train_score, label = 'train_score')
@@ -256,6 +323,9 @@ plt.legend()
 plt.show()
 #+END_SRC
 
+#+RESULTS:
+[[file:./.ob-jupyter/d7115c48f69c8f501d490c72c4f3a621c7928a6c.png]]
+
 *Observations (PCA)*
 
 We observe that by increasing the number of principal components from 1 to 4, the train and test scores improve. This is because with less components, there is high bias error in the model, since model is overly simplified. As we increase the number of principal components, the bias error will reduce, but complexity in the model increases.
@@ -265,14 +335,18 @@ We observe that by increasing the number of principal components from 1 to 4, th
 #+BEGIN_SRC jupyter-python :results raw :session my :exports both
 from sklearn.model_selection import train_test_split
 X_train, X_test, y_train, y_test = train_test_split( X, y, test_size=0.4, random_state=0)
-y_train_std = sc_y.fit_transform(y_train[:, np.newaxis]).flatten()
+y_train_std = sc_y.fit_transform(y_train.reshape(-1, 1)).flatten()
 X_train_std = sc_x.fit_transform(X_train)
 X_test_std = sc_x.transform(X_test)
 #+END_SRC
 
+#+RESULTS:
+
 #+BEGIN_SRC jupyter-python :results raw :session my :exports both
 alpha = np.linspace(0.01,0.4,10)
 #+END_SRC
+
+#+RESULTS:
 
 #+BEGIN_SRC jupyter-python :results raw :session my :exports both
 from sklearn.linear_model import Lasso
@@ -291,6 +365,8 @@ for i in range(10):
     norm= np.append(norm,np.linalg.norm(lasso.coef_))
 #+END_SRC
 
+#+RESULTS:
+
 #+BEGIN_SRC jupyter-python :session my :exports both :results raw drawer
 plt.scatter(alpha,r2_train,label='r2_train')
 plt.plot(alpha,r2_train)
@@ -305,6 +381,9 @@ plt.ylabel('R2_score')
 plt.legend()
 plt.show()
 #+END_SRC
+
+#+RESULTS:
+[[file:./.ob-jupyter/aed14e8e3abc849edbbea6385f27650626b8b43a.png]]
 
 *Observations (Lasso)*
 
