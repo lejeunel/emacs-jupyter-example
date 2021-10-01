@@ -132,14 +132,18 @@ In order to build a simplified regression model, we shall focus only on ordinal 
 from sklearn.model_selection import train_test_split
 X = df[cols_selected].iloc[:,0:4].to_numpy()
 y = df[cols_selected]['crew'].to_numpy()
-X_train, X_test, y_train, y_test = train_test_split( X,
-                                                     y,
-                                                     test_size=0.4, random_state=0)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.4, random_state=0)
 #+END_SRC
 
 #+RESULTS:
 
 * Building a linear regression model
+Our machine learning regression model for predicting a ship's "crew" size can be expressed as:
+
+\[
+\hat{y}_i = w_0 + \sum_{j=1}^4 X_{ij} w_j
+\]
 
 #+BEGIN_SRC jupyter-python :results raw :session my  :exports both
 from sklearn.linear_model import LinearRegression
@@ -360,8 +364,12 @@ for i in range(10):
     lasso.fit(X_train_std,y_train_std)
     y_train_std=lasso.predict(X_train_std)
     y_test_std=lasso.predict(X_test_std)
-    r2_train=np.append(r2_train,r2_score(y_train,sc_y.inverse_transform(y_train_std)))
-    r2_test=np.append(r2_test,r2_score(y_test,sc_y.inverse_transform(y_test_std)))
+    r2_train=np.append(r2_train,
+                       r2_score(y_train,
+                                sc_y.inverse_transform(y_train_std)))
+    r2_test=np.append(r2_test,
+                      r2_score(y_test,
+                               sc_y.inverse_transform(y_test_std)))
     norm= np.append(norm,np.linalg.norm(lasso.coef_))
 #+END_SRC
 
